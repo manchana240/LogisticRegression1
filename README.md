@@ -97,3 +97,78 @@ test_inputs = test_df[input_cols].copy()
 test_target = test_df[target_col].copy()
 ```
 7. Identify Numerical & Categorical features
+```
+numerical_cols = train_inputs.select_dtypes(include=np.number).columns.tolist()
+categorical_cols = train_inputs.select_dtypes('object').columns.tolist()
+```
+8. Handle Missing Values
+```
+from sklearn.impute import SimpleImputer
+
+imputer = SimpleImputer(strategy = 'mean')
+
+raw_df[numerical_cols].isna().sum()
+train_inputs[numerical_cols].isna().sum()
+imputer.fit(raw_df[numerical_cols])
+list(imputer.statistics_)
+train_inputs[numerical_cols] = imputer.transform(train_inputs[numerical_cols])
+val_inputs[numerical_cols] = imputer.transform(val_inputs[numerical_cols])
+test_inputs[numerical_cols] = imputer.transform(test_inputs[numerical_cols])
+```
+9. Scale Numerical Features
+```
+raw_df[numerical_cols].describe()
+
+from sklearn.preprocessing import MinMaxScaler
+
+scaler = MinMaxScaler()
+
+scaler.fit(raw_df[numerical_cols])
+
+train_inputs[numerical_cols] = scaler.transform(train_inputs[numerical_cols])
+val_inputs[numerical_cols] = scaler.transform(val_inputs[numerical_cols])
+test_inputs[numerical_cols] = scaler.transform(test_inputs[numerical_cols])
+```
+10. Encode categorical Features
+```
+from sklearn.preprocessing import OneHotEncoder
+
+encoder = OneHotEncoder(sparse_output=False, handle_unknown='ignore')
+
+encoder.fit(raw_df[categorical_cols])
+
+encoded_cols = list(encoder.get_feature_names_out(categorical_cols))
+
+train_inputs[encoded_cols] = encoder.transform(train_inputs[categorical_cols].fillna('unknown'))
+val_inputs[encoded_cols] = encoder.transform(val_inputs[categorical_cols].fillna('unknown'))
+test_inputs[encoded_cols] = encoder.transform(test_inputs[categorical_cols].fillna('unknown'))
+pd.set_option('display.max_columns', None)
+```
+11. Save processed data to disk
+```
+!pip install pyarrow
+
+train_inputs.to_parquet('train_inputs.parquet')
+val_inputs.to_parquet('val_inputs.parquet')
+test_inputs.to_parquet('test_inputs.parquet')
+
+pd.DataFrame(train_target).to_parquet('train_targets.parquet')
+pd.DataFrame(val_target).to_parquet('val_targets.parquet')
+pd.DataFrame(test_target).to_parquet('test_targets.parquet')
+
+train_inputs = pd.read_parquet('train_inputs.parquet')
+val_inputs = pd.read_parquet('val_inputs.parquet')
+test_inputs = pd.read_parquet('test_inputs.parquet')
+train_target = pd.read_parquet('train_targets.parquet')[target_col]
+val_target = pd.read_parquet('val_targets.parquet')[target_col]
+test_target = pd.read_parquet('test_targets.parquet')[target_col]
+```
+12. Train Logistic regression model
+```
+from sklearn.linear_model import LogisticRegression
+model = LogisticRegression(solver = 'liblinear')
+model.fit(train_inputs[numerical_cols + encoded_cols], train_target)
+print([numerical_cols + encoded_cols])
+print(model.coef_.tolist())
+print(model.intercept_)
+```
