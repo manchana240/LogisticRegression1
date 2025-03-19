@@ -172,3 +172,45 @@ print([numerical_cols + encoded_cols])
 print(model.coef_.tolist())
 print(model.intercept_)
 ```
+13. Analyze Model Weights
+```
+weight_df = pd.DataFrame(
+    {
+        'Feature' : (numerical_cols + encoded_cols),
+        'Weights' : model.coef_.tolist()[0]
+    }
+)
+plt.figure(figsize = (10,50))
+ax = sns.barplot(data= weight_df, x = 'Weights', y = 'Feature'  )
+
+for index, row in enumerate(weight_df.itertuples()):
+    ax.text(row.Weights + 0.02, index, f'{row.Weights:.2f}', va='center', fontsize=12)
+```
+14. Evaluate Model Performance
+```
+X_train = train_inputs[numerical_cols + encoded_cols]
+X_val = val_inputs[numerical_cols + encoded_cols]
+X_test = test_inputs[numerical_cols + encoded_cols]
+
+train_preds = model.predict(X_train)
+train_preds
+
+train_probs = model.predict_proba(X_train)
+train_probs
+
+model.classes_
+
+from sklearn.metrics import accuracy_score
+
+accuracy_score(train_target, train_preds)
+
+from sklearn.metrics import confusion_matrix
+
+confusion_matrix(train_target, train_preds, normalize = 'true')
+```
+15. Evaluate model on Train, Validation and Test Sets
+```
+train_preds = predict_and_plot(X_train, train_target, 'Training')
+val_preds = predict_and_plot(X_val, val_target, 'Validation')
+test_preds = predict_and_plot(X_test, test_target, 'Test')
+```
